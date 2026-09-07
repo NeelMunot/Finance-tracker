@@ -1,0 +1,24 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub/
+build/
+coverage/
+flutter_export_environment.sh
+
+# IDE
+.idea/
+.vscode/*.log
+*.iml
+
+# Local environment / secrets
+.env
+.env.*
+!.env.example
+*.local
+secrets/
+firebase-adminsdk-*.json
+
+# OS
+.DS_Store
+Thumbs.db
