@@ -1,6 +1,15 @@
 # Development Changelog
 
 ## 2026-09-08
+- Initialized the Android-only Flutter project for Phase 1.
+- Added Riverpod state management, go_router navigation, layered source folders,
+  placeholder theme, centralized error handling/logging, environment configuration,
+  and a foundation widget smoke test.
+- Phase 1 checkpoint passed: `flutter analyze` reported no issues and `flutter test`
+  passed with 1 test. Android debug build remains blocked by first-time Gradle setup
+  stalling at `assembleDebug`.
+
+## 2026-09-08
 - Locked v1 scope decision: no Account/bank-balance entity (ADR-008); PaymentMethod is
   a label only; credit-card liability is computed, not stored.
 - Locked money/ID/timestamp representation (ADR-009, ADR-010) and rewrote

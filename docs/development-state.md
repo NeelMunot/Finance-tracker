@@ -3,7 +3,7 @@
 Last updated: 2026-09-08
 
 ## Current phase
-Repository / AI-context bootstrap — foundational decisions now locked in (Phase 0.5 complete).
+Phase 1 — Project Foundation complete; Phase 2 is next.
 
 ## Completed
 - Product architecture baseline documented.
@@ -18,25 +18,27 @@ Repository / AI-context bootstrap — foundational decisions now locked in (Phas
 - Copilot instructions split into a slim repository-wide file plus path-scoped
   `.github/instructions/*.instructions.md` files (domain, data, credit-card) and
   three reusable `.github/skills/` entries.
+- Android-only Flutter project initialized with Riverpod, go_router, layered
+  source structure, placeholder theme, error handling, logging, environment
+  configuration, and a foundation smoke test.
 
 ## In progress
-- Initialize Flutter project.
-- Configure repository.
-- Configure Firebase development environment.
+- None.
 
 ## Next
-1. Create Flutter application foundation (Phase 1).
-2. Configure authentication + Firebase App Check together (Phase 2).
-3. Implement Drift schema (encrypted) per `docs/data-model.md` v1 (Phase 3).
-4. Implement transaction domain / use cases (Phase 4).
-5. Implement categories/payment methods.
-6. Implement repositories.
-7. Add core transaction UI.
-8. Implement credit cards (liability computed, per `.github/skills/credit-card-logic-review`).
-9. Implement sync.
+1. Configure authentication + Firebase App Check together (Phase 2).
+2. Implement Drift schema (encrypted) per `docs/data-model.md` v1 (Phase 3).
+3. Implement transaction domain / use cases (Phase 4).
+4. Implement categories/payment methods.
+5. Implement repositories.
+6. Add core transaction UI.
+7. Implement credit cards (liability computed, per `.github/skills/credit-card-logic-review`).
+8. Implement sync.
 
 ## Known issues
-- None recorded.
+- Android debug build stalled during first-time Gradle setup at `assembleDebug`.
+- `flutter analyze` passed with no issues on 2026-09-08.
+- `flutter test` passed with 1 test on 2026-09-08.
 
 ## Deferred (see `docs/roadmap.md` "Deferred / Not Scheduled")
 - Bank-account balance tracking (only if v1 usage shows it's actually needed).

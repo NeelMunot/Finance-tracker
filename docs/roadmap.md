@@ -15,13 +15,13 @@
 - [x] Local DB encryption approach decided (SQLCipher, ADR-011)
 
 ## Phase 1 — Project Foundation
-- [ ] Flutter project
-- [ ] Routing/navigation
-- [ ] Riverpod
-- [ ] Theme/design system
-- [ ] Error handling
-- [ ] Logging
-- [ ] Environment/configuration
+- [x] Flutter project (Android target only)
+- [x] Routing/navigation
+- [x] Riverpod
+- [x] Theme/design system placeholder
+- [x] Error handling
+- [x] Logging
+- [x] Environment/configuration
 
 ## Phase 2 — Authentication
 - [ ] Firebase project configuration
