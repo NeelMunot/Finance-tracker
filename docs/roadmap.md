@@ -24,11 +24,11 @@
 - [x] Environment/configuration
 
 ## Phase 2 — Authentication
-- [ ] Firebase project configuration
-- [ ] Firebase App Check configuration (debug provider for local dev)
-- [ ] Google Sign-In
-- [ ] Auth state
-- [ ] User-scoped repositories
+- [x] Firebase project configuration
+- [x] Firebase App Check configuration (debug provider for local dev)
+- [x] Google Sign-In
+- [x] Auth state
+- [x] User-scoped repository infrastructure
 
 ## Phase 3 — Local Database
 - [ ] Drift database

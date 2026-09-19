@@ -20,7 +20,7 @@ class FinanceTrackerApp extends ConsumerWidget {
     return MaterialApp.router(
       title: config.appName,
       theme: buildAppTheme(),
-      routerConfig: appRouter,
+      routerConfig: ref.watch(appRouterProvider),
       builder: (context, child) {
         return child ?? const SizedBox.shrink();
       },

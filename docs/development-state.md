@@ -1,9 +1,9 @@
 # Development State
 
-Last updated: 2026-09-08
+Last updated: 2026-09-19
 
 ## Current phase
-Phase 1 — Project Foundation complete; Phase 2 is next.
+Phase 2 — Authentication complete; Phase 3 is next.
 
 ## Completed
 - Product architecture baseline documented.
@@ -21,24 +21,35 @@ Phase 1 — Project Foundation complete; Phase 2 is next.
 - Android-only Flutter project initialized with Riverpod, go_router, layered
   source structure, placeholder theme, error handling, logging, environment
   configuration, and a foundation smoke test.
+- Firebase Core, Firebase Auth, Firebase App Check debug-provider bootstrap, and
+  Google Sign-In integrated behind infrastructure/application abstractions.
+- Authentication loading, signed-out, signed-in, and error states are modeled
+  and connected to routing.
+- Authenticated user scope and a repository access guard are established for
+  future repositories without adding persistence.
 
 ## In progress
-- None.
+- Manual Firebase Console setup and local App Check debug-token registration.
 
 ## Next
-1. Configure authentication + Firebase App Check together (Phase 2).
-2. Implement Drift schema (encrypted) per `docs/data-model.md` v1 (Phase 3).
-3. Implement transaction domain / use cases (Phase 4).
-4. Implement categories/payment methods.
-5. Implement repositories.
-6. Add core transaction UI.
-7. Implement credit cards (liability computed, per `.github/skills/credit-card-logic-review`).
-8. Implement sync.
+1. Implement Drift schema (encrypted) per `docs/data-model.md` v1 (Phase 3).
+2. Implement transaction domain / use cases (Phase 4).
+3. Implement categories/payment methods.
+4. Implement repositories.
+5. Add core transaction UI.
+6. Implement credit cards (liability computed, per `.github/skills/credit-card-logic-review`).
+7. Implement sync.
 
 ## Known issues
 - Android debug build stalled during first-time Gradle setup at `assembleDebug`.
-- `flutter analyze` passed with no issues on 2026-09-08.
-- `flutter test` passed with 1 test on 2026-09-08.
+- Android debug build was retried after Firebase Gradle integration and remained
+  at `assembleDebug` until the terminal process was terminated.
+- `flutter analyze` passed with no issues on 2026-09-19.
+- `flutter test` passed with 3 tests on 2026-09-19.
+- Local `android/app/google-services.json` is required and ignored by Git; it must
+  be supplied from the existing Firebase project configuration.
+- Firebase Console must have Google provider enabled and the generated App Check
+  debug token registered after the first local run.
 
 ## Deferred (see `docs/roadmap.md` "Deferred / Not Scheduled")
 - Bank-account balance tracking (only if v1 usage shows it's actually needed).

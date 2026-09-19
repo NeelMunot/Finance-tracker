@@ -1,5 +1,11 @@
 import 'app/app.dart';
 
-void main() {
+import 'package:flutter/material.dart';
+
+import 'infrastructure/firebase/firebase_bootstrap.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await DefaultFirebaseBootstrapper().initialize();
   runFinanceTracker();
 }

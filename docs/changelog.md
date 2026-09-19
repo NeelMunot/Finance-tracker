@@ -1,5 +1,15 @@
 # Development Changelog
 
+## 2026-09-19
+- Implemented Phase 2 authentication foundation: Firebase initialization, Android
+  Google Services integration, Firebase App Check debug provider, Google Sign-In,
+  Firebase Auth state handling, auth-aware routing, and authenticated user scope
+  guards.
+- Added fake-backed auth state and routing tests without live Firebase services.
+- Kept local `android/app/google-services.json` out of Git tracking.
+- Android debug validation reached `assembleDebug` but was terminated during the
+  first-time SDK/Gradle setup.
+
 ## 2026-09-08
 - Initialized the Android-only Flutter project for Phase 1.
 - Added Riverpod state management, go_router navigation, layered source folders,

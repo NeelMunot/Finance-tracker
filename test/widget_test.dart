@@ -9,14 +9,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:finance_tracker/app/app.dart';
+import 'package:finance_tracker/application/auth/auth_providers.dart';
+
+import 'fakes/fake_auth_repository.dart';
 
 void main() {
-  testWidgets('renders the Phase 1 application shell', (
+  testWidgets('routes signed-out users to Google Sign-In', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: FinanceTrackerApp()));
+    final repository = FakeAuthRepository();
+    addTearDown(repository.dispose);
 
-    expect(find.text('Finance Tracker'), findsOneWidget);
-    expect(find.text('Project foundation ready'), findsOneWidget);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [authRepositoryProvider.overrideWithValue(repository)],
+        child: const FinanceTrackerApp(),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Sign in with Google'), findsOneWidget);
   });
 }

@@ -18,6 +18,7 @@ flutter_export_environment.sh
 *.local
 secrets/
 firebase-adminsdk-*.json
+android/app/google-services.json
 
 # OS
 .DS_Store
