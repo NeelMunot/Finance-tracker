@@ -31,12 +31,16 @@
 - [x] User-scoped repository infrastructure
 
 ## Phase 3 — Local Database
-- [ ] Drift database
-- [ ] Initial migrations
-- [ ] Categories
-- [ ] Payment methods
-- [ ] Transactions
-- [ ] Attachments
+- [ ] Per-user Drift database isolation with fail-closed SQLCipher encryption (ADR-013)
+- [ ] SQLCipher native bundling via `package:sqlite3` 3.x build hooks (`hooks.user_defines.sqlite3.source: sqlcipher`) with compatible Drift (>= 2.32.0)
+- [ ] Secure encryption key management (`flutter_secure_storage` v10+) and Android manifest backup exclusion
+- [ ] Initial schema definition (Version 1)
+- [ ] Categories table
+- [ ] Payment methods table (with `linkedCreditCardId` foreign key)
+- [ ] Credit cards table (schema-only infrastructure; ADR-015; domain logic & UI in Phase 5)
+- [ ] Transactions table
+- [ ] Attachments table
+- [ ] Uniform soft-delete and sync metadata on all 5 entities (ADR-014)
 
 ## Phase 4 — Transactions
 - [ ] Add
@@ -47,11 +51,12 @@
 - [ ] Validation
 
 ## Phase 5 — Credit Cards
-- [ ] Multiple cards
+- [ ] Multiple card profiles (privacy-first non-credential profiles per ADR-015)
 - [ ] Billing cycle calculations
-- [ ] Liability
-- [ ] Bill view
-- [ ] Bill payment
+- [ ] Liability calculations (computed at query time from transactions; no stored balance)
+- [ ] Bill view & statement date boundaries
+- [ ] Bill payment workflows (transfers reducing computed liability)
+- [ ] Credit card UI
 
 ## Phase 6 — Cloud Sync
 - [ ] Firestore model

@@ -1,5 +1,13 @@
 # Development Changelog
 
+## 2026-10-27
+- Completed Phase 3 architecture review and baseline refinement:
+  - Added ADR-013 establishing per-user local database isolation (`app_user_<hash>.db`) with independent secure-storage keys, lifecycle tied to `UserScope`, and OS auto-backup exclusion.
+  - Added ADR-014 establishing uniform soft-delete (`deletedAt`) and synchronization metadata (`createdAt`, `updatedAt`, `deletedAt`, `syncStatus`, `version`) across all 5 mutable entities (`Category`, `PaymentMethod`, `CreditCard`, `Transaction`, `Attachment`).
+  - Added ADR-015 establishing credit-card privacy rules and non-credential profile model (PAN, CVV/CVC, PINs strictly prohibited; profile-only tracking; schema-only `CreditCard` table in Phase 3; logic deferred to Phase 5).
+  - Modernized database encryption plan: Adopted `package:sqlite3` 3.x build hooks (`hooks.user_defines.sqlite3.source: sqlcipher`) with Drift (>= 2.32.0) for native SQLCipher bundling, retiring obsolete `sqlcipher_flutter_libs`.
+  - Updated `docs/requirements.md`, `docs/data-model.md`, `docs/roadmap.md`, `docs/development-state.md`, and `docs/decisions.md`.
+
 ## 2026-09-19
 - Implemented Phase 2 authentication foundation: Firebase initialization, Android
   Google Services integration, Firebase App Check debug provider, Google Sign-In,

@@ -99,6 +99,78 @@ Firebase App Check is configured alongside Authentication in Phase 2, not deferr
 Reason:
 Firebase has confirmed App Check enforcement becomes required for Firebase AI Logic starting November 2, 2026. Given the expected development timeline, treating this as day-one plumbing avoids a hard stop later.
 
+## ADR-013 — Per-user local database isolation & lifecycle
+Status: Accepted
+Date: 2026-10-27
+
+Decision:
+Each authenticated Firebase user is allocated an isolated, SQLCipher-encrypted Drift SQLite database file (`app_user_<hash>.db`), where `<hash>` is a filesystem-safe SHA-256 hash prefix of the authenticated `userId`. Tables inside the database do not contain redundant `userId` columns.
+
+Lifecycle & Key Management:
+- A database may open only after authentication successfully resolves to a signed-in `UserScope`.
+- Each user's database uses an independent 256-bit encryption key stored in platform secure storage (`flutter_secure_storage`).
+- On sign-out, the user-scoped database connection and Riverpod providers are closed and disposed.
+- Database files and secure-storage keys are **not** automatically deleted on sign-out; local data retention ensures offline availability upon re-authentication. Explicit data wipe is a distinct, destructive operation.
+- Verification & Fail-Closed: SQLCipher initialization verifies cipher presence and validity. If an encrypted database cannot be opened, the application fails closed; no plaintext SQLite fallback is permitted.
+- Backup & Restore Policy: Local database files and secure-storage preferences are explicitly excluded from Android Auto Backup. Hardware Keystore keys are device-bound and cannot be restored across devices or reinstalls; cross-device data restoration is handled exclusively via Cloud Firestore synchronization (Phase 6).
+
+Alternatives considered:
+- Single shared database with `userId` column on every entity table: Rejected due to risk of cross-user data leakage if any query omits `WHERE userId = ...`, excessive compound indexing overhead, and complicated data purging.
+
+Consequences:
+- Cryptographic and physical isolation of user financial data at rest.
+- Clean integration with Riverpod `requiredUserScopeProvider`.
+- Table schemas and query logic remain uncluttered by tenant filtering.
+
+## ADR-014 — Uniform soft-delete and synchronization metadata
+Status: Accepted
+Date: 2026-10-27
+
+Decision:
+All five mutable, syncable entities — `Category`, `PaymentMethod`, `CreditCard`, `Transaction`, and `Attachment` — uniformly implement common persistence and synchronization metadata in Drift schema v1:
+- `createdAt` (integer, UTC epoch ms, non-nullable)
+- `updatedAt` (integer, UTC epoch ms, non-nullable)
+- `deletedAt` (integer, UTC epoch ms, nullable tombstone)
+- `syncStatus` (text/enum: `pending`, `synced`, `conflict`, default `'pending'`)
+- `version` (integer, local mutation counter, default `1`)
+
+`active: bool` on `Category`, `PaymentMethod`, and `CreditCard` remains distinct from `deletedAt`: `active = false` is a user-facing archive toggle that hides the entity from selection pickers while preserving historical transactions; `deletedAt != null` is a soft-delete tombstone that excludes the row from normal queries and informs Phase 6 synchronization of deletions.
+
+Scope boundary:
+The schema defines these columns in Phase 3. The synchronization engine and conflict resolution logic remain deferred to Phase 6.
+
+Alternatives considered:
+- Physical row deletion (`DELETE FROM`) in Phase 3: Rejected because offline deletions could not be tracked or propagated to Cloud Firestore in Phase 6 without a disruptive schema migration.
+- Only adding sync columns to `Transaction`: Rejected because categories, payment methods, cards, and attachments are all user-created mutable entities requiring cloud sync.
+
+Consequences:
+- Eliminates schema migrations when Phase 6 Cloud Sync is introduced.
+- Default repository queries must filter out records where `deletedAt != null`.
+
+## ADR-015 — Credit-card privacy & non-credential profile model
+Status: Accepted
+Date: 2026-10-27
+
+Decision:
+The `CreditCard` entity is strictly a personal financial tracking profile for billing schedules and liability calculations, not a payment credential, token, or processing instrument.
+
+Privacy & Security Constraints:
+1. The application strictly prohibits collecting or storing Primary Account Numbers (full PAN), Card Verification Values (CVV/CVC), PINs, OTPs, or online banking credentials. CVV/CVC must never be stored under any circumstances.
+2. Card profiles focus exclusively on user-defined tracking metadata: nickname, issuer, statement closing day (1–31), payment due day (1–31), billing-cycle rules, and optional credit limit. (Reminder preferences are deferred from the v1 schema until a dedicated notification feature is designed).
+3. An optional `lastFourDigits` field is supported solely for user display and distinguishing cards; it must never be required.
+4. Creating a credit-card profile is entirely optional; the application is fully usable with standard payment-method labels (cash, bank, wallet) without entering any credit-card profile.
+5. Local SQLCipher encryption is mandatory, but encryption is never used as justification for collecting unnecessary sensitive payment credentials.
+6. The `CreditCard` table is provisioned in Phase 3 as schema-only infrastructure (enabling referential integrity for `PaymentMethod.linkedCreditCardId`). All credit-card domain logic, billing-cycle math, liability queries, and UI are deferred to Phase 5.
+7. Any future proposal to store full card numbers would require an independent product and security decision with a formal threat model and security review; it is not permitted implicitly in v1.
+
+Alternatives considered:
+- Deferring the `CreditCard` table to Phase 5: Rejected because `PaymentMethod.linkedCreditCardId` requires a valid relational foreign key in Schema v1 to avoid schema alteration in Phase 5.
+- Collecting card numbers for auto-formatting: Rejected to minimize attack surface and compliance burden.
+
+Consequences:
+- Avoiding payment-credential storage significantly reduces exposure and attack surface, but does not eliminate all security, privacy, or compliance obligations (personal financial metadata remains sensitive and requires robust protection).
+- Users have full privacy and control over card tracking.
+
 ## How to add an ADR
 For a meaningful architectural change, add:
 - Decision

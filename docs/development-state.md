@@ -1,9 +1,9 @@
 # Development State
 
-Last updated: 2026-09-19
+Last updated: 2026-10-27
 
 ## Current phase
-Phase 2 — Authentication complete; Phase 3 is next.
+Phase 2 — Authentication complete. Phase 3 (Local Database) architecture review approved; implementation ready to begin upon approval.
 
 ## Completed
 - Product architecture baseline documented.
@@ -13,8 +13,18 @@ Phase 2 — Authentication complete; Phase 3 is next.
 - Foundational data decisions locked in: no Account/balance entity (ADR-008), integer
   minor-unit amounts (ADR-009), UUID/epoch-ms IDs & timestamps (ADR-010), SQLCipher
   local encryption (ADR-011), Firebase App Check from Phase 2 (ADR-012).
-- `docs/data-model.md` rewritten with concrete v1 field types (no longer "fields may
-  include" placeholders).
+- Per-user local database isolation and lifecycle documented (ADR-013): one encrypted
+  Drift database per authenticated user (`app_user_<hash>.db`), unique secure storage keys,
+  lifecycle tied to `UserScope`, fail-closed verification, and OS auto-backup exclusion.
+- Uniform persistence and synchronization metadata locked in across all 5 syncable entities
+  (ADR-014): `createdAt`, `updatedAt`, `deletedAt`, `syncStatus`, `version`.
+- Credit-card privacy and non-credential profile model documented (ADR-015): PAN, CVV,
+  PINs prohibited; profile-only metadata; `CreditCard` table created in Phase 3 as
+  schema-only infrastructure with domain logic deferred to Phase 5.
+- Modern SQLCipher dependency plan resolved: Native bundling via `package:sqlite3` 3.x build
+  hooks (`hooks.user_defines.sqlite3.source: sqlcipher`) with Drift (>= 2.32.0, recommended `^2.35.3`),
+  replacing obsolete `sqlcipher_flutter_libs`.
+- `docs/data-model.md` and `docs/requirements.md` updated to reflect concrete schema and privacy baseline.
 - Copilot instructions split into a slim repository-wide file plus path-scoped
   `.github/instructions/*.instructions.md` files (domain, data, credit-card) and
   three reusable `.github/skills/` entries.
@@ -29,16 +39,17 @@ Phase 2 — Authentication complete; Phase 3 is next.
   future repositories without adding persistence.
 
 ## In progress
-- Manual Firebase Console setup and local App Check debug-token registration.
+- Manual Firebase Console setup and local App Check debug-token registration on device/emulator.
 
-## Next
-1. Implement Drift schema (encrypted) per `docs/data-model.md` v1 (Phase 3).
-2. Implement transaction domain / use cases (Phase 4).
-3. Implement categories/payment methods.
-4. Implement repositories.
-5. Add core transaction UI.
-6. Implement credit cards (liability computed, per `.github/skills/credit-card-logic-review`).
-7. Implement sync.
+## Next (Phase 3 Implementation — Pending Approval)
+1. Add Phase 3 dependencies to `pubspec.yaml`: Drift (>= 2.32.0, e.g. `drift: ^2.35.3`, `drift_dev: ^2.35.3`), `package:sqlite3` 3.x (`sqlite3: ^3.1.0`) configured with native build hooks (`hooks.user_defines.sqlite3.source: sqlcipher`), `flutter_secure_storage: ^10.0.0`, `uuid: ^4.5.1`, `crypto: ^3.0.6`, `path_provider: ^2.1.5`, `path: ^1.9.1`.
+2. Configure Android backup rules (`res/xml/backup_rules.xml` and `data_extraction_rules.xml`) AND update `AndroidManifest.xml` (`android:fullBackupContent` and `android:dataExtractionRules` attributes on `<application>`) to explicitly activate backup exclusion for local encrypted database files and secure-storage preferences.
+3. Implement `DatabaseKeyManager` in `lib/infrastructure/security/` to safely generate/retrieve 256-bit keys per `UserScope` using modern `flutter_secure_storage` namespace isolation.
+4. Define Drift tables (`Categories`, `PaymentMethods`, `CreditCards`, `Transactions`, `Attachments`) with the common `SyncableTable` mixin per `docs/data-model.md`.
+5. Implement user-scoped encrypted Drift database class with fail-closed SQLCipher initialization and sanitized database paths (`app_user_<hash>.db`).
+6. Wire `databaseProvider` into Riverpod scoped to `requiredUserScopeProvider` with lifecycle disposal on sign-out. Testing will use fake repositories and Riverpod provider overrides; no runtime development-mode authentication bypass will be used.
+7. Run code generation (`build_runner`) and implement verification tests (schema creation, fail-closed encryption verification, user isolation, and soft-delete filtering).
+8. Run static analysis and unit tests (`flutter analyze`, `flutter test`).
 
 ## Known issues
 - Android debug build stalled during first-time Gradle setup at `assembleDebug`.
