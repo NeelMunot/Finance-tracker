@@ -1,1 +1,1 @@
-// Repository implementations and persistence adapters are added in later phases.
+export 'database/app_database.dart';

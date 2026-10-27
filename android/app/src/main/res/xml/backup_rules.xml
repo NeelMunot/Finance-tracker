@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Exclude local encrypted SQLite database files from OS cloud backup.
+         Flutter's getApplicationDocumentsDirectory() resolves to app_flutter/ under domain="root". -->
+    <exclude domain="root" path="app_flutter" />
+    <!-- Exclude standard databases directory under domain="database" for defense in depth -->
+    <exclude domain="database" />
+    <!-- Exclude flutter_secure_storage key material preferences -->
+    <exclude domain="sharedpref" path="finance_tracker_vault.xml" />
+    <exclude domain="sharedpref" path="FlutterSecureStorage.xml" />
+</full-backup-content>

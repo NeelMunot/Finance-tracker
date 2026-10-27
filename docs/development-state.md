@@ -3,7 +3,7 @@
 Last updated: 2026-10-27
 
 ## Current phase
-Phase 2 — Authentication complete. Phase 3 (Local Database) architecture review approved; implementation ready to begin upon approval.
+Phase 3 — Local Database: Slice 1 (Encrypted Database Foundation) complete. Waiting for review before implementing Slice 2 (Schema & entity tables).
 
 ## Completed
 - Product architecture baseline documented.
@@ -22,8 +22,31 @@ Phase 2 — Authentication complete. Phase 3 (Local Database) architecture revie
   PINs prohibited; profile-only metadata; `CreditCard` table created in Phase 3 as
   schema-only infrastructure with domain logic deferred to Phase 5.
 - Modern SQLCipher dependency plan resolved: Native bundling via `package:sqlite3` 3.x build
-  hooks (`hooks.user_defines.sqlite3.source: sqlcipher`) with Drift (>= 2.32.0, recommended `^2.35.3`),
-  replacing obsolete `sqlcipher_flutter_libs`.
+  hooks (`hooks.user_defines.sqlite3.source: sqlcipher`) with Drift (>= 2.32.0, using `^2.35.3`),
+  retiring obsolete `sqlcipher_flutter_libs`.
+- Android backup exclusion rules (`res/xml/backup_rules.xml` and `res/xml/data_extraction_rules.xml`)
+  created and explicitly wired into `AndroidManifest.xml` (`android:fullBackupContent` and
+  `android:dataExtractionRules`) to prevent device-bound Keystore disconnects.
+- `DatabaseKeyManager` abstract interface and `SecureStorageDatabaseKeyManager` implemented with
+  `flutter_secure_storage: ^11.2.0` (`storageNamespace: 'finance_tracker_vault'`), generating 256-bit
+  cryptographically secure keys per user, sanitizing user IDs via SHA-256 (`app_user_<hash>.db`),
+  strictly validating format, and preventing key leakage in logs or exceptions.
+- `EncryptedDatabaseFactory` implemented with fail-closed runtime checks: enforces active SQLCipher
+  binary (`PRAGMA cipher_version;`), applies 256-bit keys via `PRAGMA key = "x'<hex>'";`, verifies
+  readability via `SELECT count(*) FROM sqlite_master;`, and strictly blocks plaintext SQLite fallback.
+- Drift `AppDatabase` foundation instantiated and wired into Riverpod (`appDatabaseProvider`) scoped to
+  `requiredUserScopeProvider` with lifecycle disposal on sign-out.
+- Comprehensive unit test suites implemented (`test/security/database_key_manager_test.dart` and
+  `test/database/encrypted_database_test.dart`) covering key generation, retrieval persistence, corruption
+  handling, SQLCipher runtime availability, reopening, wrong-key failure, and unencrypted-read rejection.
+- On-device Android integration test suite (`integration_test/encrypted_database_android_test.dart`) executed
+  successfully on Android 16 (API 36) emulator: verified runtime SQLCipher 4.19.0 community active, verified
+  encrypted DB creation in `/data/user/0/<package>/app_flutter/`, verified successful reopen with key, verified
+  fail-closed rejection with wrong key, verified rejection without key, and verified unencrypted `/system/bin/sqlite3`
+  fails with `file is not a database (26)`.
+- Corrected Android backup rules (`backup_rules.xml` and `data_extraction_rules.xml`) to explicitly exclude
+  `<exclude domain="root" path="app_flutter" />` because `getApplicationDocumentsDirectory()` resolves to
+  `/data/user/0/<package>/app_flutter/` which is under Android's `root` domain, not `database`.
 - `docs/data-model.md` and `docs/requirements.md` updated to reflect concrete schema and privacy baseline.
 - Copilot instructions split into a slim repository-wide file plus path-scoped
   `.github/instructions/*.instructions.md` files (domain, data, credit-card) and
@@ -39,24 +62,20 @@ Phase 2 — Authentication complete. Phase 3 (Local Database) architecture revie
   future repositories without adding persistence.
 
 ## In progress
-- Manual Firebase Console setup and local App Check debug-token registration on device/emulator.
+- Phase 3 Slice 1 review checkpoint.
 
-## Next (Phase 3 Implementation — Pending Approval)
-1. Add Phase 3 dependencies to `pubspec.yaml`: Drift (>= 2.32.0, e.g. `drift: ^2.35.3`, `drift_dev: ^2.35.3`), `package:sqlite3` 3.x (`sqlite3: ^3.1.0`) configured with native build hooks (`hooks.user_defines.sqlite3.source: sqlcipher`), `flutter_secure_storage: ^10.0.0`, `uuid: ^4.5.1`, `crypto: ^3.0.6`, `path_provider: ^2.1.5`, `path: ^1.9.1`.
-2. Configure Android backup rules (`res/xml/backup_rules.xml` and `data_extraction_rules.xml`) AND update `AndroidManifest.xml` (`android:fullBackupContent` and `android:dataExtractionRules` attributes on `<application>`) to explicitly activate backup exclusion for local encrypted database files and secure-storage preferences.
-3. Implement `DatabaseKeyManager` in `lib/infrastructure/security/` to safely generate/retrieve 256-bit keys per `UserScope` using modern `flutter_secure_storage` namespace isolation.
-4. Define Drift tables (`Categories`, `PaymentMethods`, `CreditCards`, `Transactions`, `Attachments`) with the common `SyncableTable` mixin per `docs/data-model.md`.
-5. Implement user-scoped encrypted Drift database class with fail-closed SQLCipher initialization and sanitized database paths (`app_user_<hash>.db`).
-6. Wire `databaseProvider` into Riverpod scoped to `requiredUserScopeProvider` with lifecycle disposal on sign-out. Testing will use fake repositories and Riverpod provider overrides; no runtime development-mode authentication bypass will be used.
-7. Run code generation (`build_runner`) and implement verification tests (schema creation, fail-closed encryption verification, user isolation, and soft-delete filtering).
-8. Run static analysis and unit tests (`flutter analyze`, `flutter test`).
+## Next (Phase 3 Slice 2 — Schema & Entity Tables)
+1. Define Drift tables (`Categories`, `PaymentMethods`, `CreditCards`, `Transactions`, `Attachments`) with the common `SyncableTable` mixin per `docs/data-model.md`.
+2. Implement schema v1 migrations and relations (e.g. `PaymentMethod.linkedCreditCardId` foreign key to `CreditCards.id`).
+3. Run code generation (`build_runner`) for the complete entity schema.
+4. Implement repositories and test suite (schema creation, referential integrity, soft-delete filtering).
+5. Run static analysis and unit tests (`flutter analyze`, `flutter test`).
 
 ## Known issues
-- Android debug build stalled during first-time Gradle setup at `assembleDebug`.
-- Android debug build was retried after Firebase Gradle integration and remained
-  at `assembleDebug` until the terminal process was terminated.
-- `flutter analyze` passed with no issues on 2026-09-19.
-- `flutter test` passed with 3 tests on 2026-09-19.
+- Android debug build completed successfully on 2026-10-27 (`build\app\outputs\flutter-apk\app-debug.apk`) with SQLCipher native libraries bundled; first-time SDK/CMake 3.22.1 installation completed.
+- Android emulator integration tests passed 6/6 tests on Android 16 (API 36) on 2026-10-27.
+- `flutter analyze` passed with no issues on 2026-10-27.
+- `flutter test` passed with 21 unit/widget tests on 2026-10-27.
 - Local `android/app/google-services.json` is required and ignored by Git; it must
   be supplied from the existing Firebase project configuration.
 - Firebase Console must have Google provider enabled and the generated App Check

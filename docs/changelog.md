@@ -1,6 +1,16 @@
 # Development Changelog
 
 ## 2026-10-27
+- Implemented Phase 3 Slice 1 (Encrypted Database Foundation):
+  - Configured SQLCipher native build hooks (`hooks.user_defines.sqlite3.source: sqlcipher`) with `package:sqlite3: ^3.8.0` and `drift: ^2.35.3` / `drift_dev: ^2.35.2`.
+  - Upgraded to `flutter_secure_storage: ^11.2.0` with `AndroidOptions(storageNamespace: 'finance_tracker_vault')` to support isolated secure storage namespaces without deprecated flags.
+  - Implemented `DatabaseKeyManager` domain contract and `SecureStorageDatabaseKeyManager` to securely generate, persist, and retrieve 256-bit AES encryption keys per user. User IDs are sanitized to filesystem-safe SHA-256 hashes (`app_user_<hash>.db`), and keys are never logged or exposed in exceptions.
+  - Added in-memory `FakeDatabaseKeyManager` to enable fake-backed unit testing without platform channels or real Keystore access.
+  - Implemented `EncryptedDatabaseFactory` and `AppDatabase` with fail-closed runtime security verification: verifies `PRAGMA cipher_version;`, enforces 256-bit hexadecimal keys via `PRAGMA key = "x'<hex>'";`, verifies decryption via `SELECT count(*) FROM sqlite_master;`, and prevents plaintext SQLite fallback.
+  - Wired `appDatabaseProvider` into Riverpod scoped to `requiredUserScopeProvider`, ensuring user-scoped database isolation and proper disposal on sign-out without deleting user keys or data.
+  - Configured Android backup exclusion XML rules (`backup_rules.xml` and `data_extraction_rules.xml`) and referenced them in `AndroidManifest.xml` to prevent Keystore-bound encrypted databases from being corrupted across device backups. Updated rules to explicitly exclude `<exclude domain="root" path="app_flutter" />` matching `getApplicationDocumentsDirectory()`.
+  - Added unit test suites verifying key management and encrypted database lifecycle (21 tests passing).
+  - Executed Android emulator runtime integration test suite (`integration_test/encrypted_database_android_test.dart`) on Android 16 (API 36) verifying active SQLCipher 4.19.0 community runtime, database creation, reopen with correct key, fail-closed failure with incorrect key, unkeyed access failure, and verified unencrypted `/system/bin/sqlite3` failure (`file is not a database (26)`).
 - Completed Phase 3 architecture review and baseline refinement:
   - Added ADR-013 establishing per-user local database isolation (`app_user_<hash>.db`) with independent secure-storage keys, lifecycle tied to `UserScope`, and OS auto-backup exclusion.
   - Added ADR-014 establishing uniform soft-delete (`deletedAt`) and synchronization metadata (`createdAt`, `updatedAt`, `deletedAt`, `syncStatus`, `version`) across all 5 mutable entities (`Category`, `PaymentMethod`, `CreditCard`, `Transaction`, `Attachment`).
