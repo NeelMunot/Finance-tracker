@@ -1,5 +1,27 @@
 # Development Changelog
 
+## 2026-10-31
+- Implemented Phase 3 Slice 2 (Initial Database Schema Version 1):
+  - Defined all 5 core Drift tables in `lib/data/database/tables/`: `Categories`, `CreditCards`, `PaymentMethods`, `Transactions`, and `Attachments`.
+  - Implemented `SyncableTable` mixin providing uniform synchronization metadata (`createdAt`, `updatedAt`, `deletedAt`, `syncStatus`, `version`) across all 5 tables (ADR-014).
+  - Maintained `active` archive flag on `Categories`, `CreditCards`, and `PaymentMethods` distinct from `deletedAt` tombstones.
+  - Implemented bidirectional Drift `TypeConverter`s in `lib/data/database/converters/converters.dart` mapping exact documented strings (`INCOME`, `EXPENSE`, `CASH`, `BANK`, `CREDIT_CARD`, `WALLET`, `OTHER`, `TRANSFER`, `MANUAL`, `AI_RECEIPT`, `AI_NATURAL_LANGUAGE`, `CSV_IMPORT`, `NOT_PROCESSED`, `PENDING`, `DONE`, `FAILED`, and lowercase `pending`, `synced`, `conflict`), failing closed with `ArgumentError` on unrecognized input.
+  - Enforced SQLite engine-level DDL constraints with explicit `NOT NULL` on required fields:
+    - `amount_minor_units`: `NOT NULL CHECK (amount_minor_units > 0)`.
+    - `currency`: `NOT NULL CHECK (currency GLOB '[A-Z][A-Z][A-Z]')`.
+    - `statement_day` and `due_day`: `NOT NULL CHECK (... BETWEEN 1 AND 31)`.
+    - `credit_limit_minor_units`: `CHECK (credit_limit_minor_units IS NULL OR credit_limit_minor_units >= 0)`.
+    - `last_four_digits`: `CHECK (last_four_digits IS NULL OR last_four_digits GLOB '[0-9][0-9][0-9][0-9]')` (exactly 4 numeric digits or NULL).
+  - Configured foreign key relationships with `PRAGMA foreign_keys = ON;` in `MigrationStrategy.beforeOpen`:
+    - `PaymentMethods.linkedCreditCardId` -> `CreditCards.id` with `ON DELETE SET NULL`.
+    - `Transactions.categoryId` -> `Categories.id` with `ON DELETE RESTRICT`.
+    - `Transactions.paymentMethodId` -> `PaymentMethods.id` with `ON DELETE RESTRICT`.
+    - `Transactions.counterPaymentMethodId` -> `PaymentMethods.id` with `ON DELETE RESTRICT`.
+    - `Attachments.transactionId` -> `Transactions.id` with `ON DELETE CASCADE` (for physical row deletion; soft-deletions handled by domain layer).
+  - Added Drift `@ReferenceName` annotations to resolve manager reverse reference name collisions between `paymentMethodId` and `counterPaymentMethodId`.
+  - Exported Schema Version 1 baseline snapshot to `drift_schemas/drift_schema_v1.json` via `drift_dev schema dump`.
+  - Implemented comprehensive schema test suite in `test/database/schema_v1_test.dart` (17 tests covering tables, metadata, enums, defaults, SQLite DDL constraints, foreign keys, SQLCipher encryption, and user isolation). All 38 repository unit/widget tests passing.
+
 ## 2026-10-27
 - Implemented Phase 3 Slice 1 (Encrypted Database Foundation):
   - Configured SQLCipher native build hooks (`hooks.user_defines.sqlite3.source: sqlcipher`) with `package:sqlite3: ^3.8.0` and `drift: ^2.35.3` / `drift_dev: ^2.35.2`.

@@ -1,9 +1,9 @@
 # Development State
 
-Last updated: 2026-10-27
+Last updated: 2026-10-31
 
 ## Current phase
-Phase 3 — Local Database: Slice 1 (Encrypted Database Foundation) complete. Waiting for review before implementing Slice 2 (Schema & entity tables).
+Phase 3 — Local Database: Complete (Slice 1 Encrypted Foundation & Slice 2 Schema/Entity Tables). Ready for review before proceeding to Phase 4 (Transactions).
 
 ## Completed
 - Product architecture baseline documented.
@@ -36,43 +36,32 @@ Phase 3 — Local Database: Slice 1 (Encrypted Database Foundation) complete. Wa
   readability via `SELECT count(*) FROM sqlite_master;`, and strictly blocks plaintext SQLite fallback.
 - Drift `AppDatabase` foundation instantiated and wired into Riverpod (`appDatabaseProvider`) scoped to
   `requiredUserScopeProvider` with lifecycle disposal on sign-out.
-- Comprehensive unit test suites implemented (`test/security/database_key_manager_test.dart` and
-  `test/database/encrypted_database_test.dart`) covering key generation, retrieval persistence, corruption
-  handling, SQLCipher runtime availability, reopening, wrong-key failure, and unencrypted-read rejection.
-- On-device Android integration test suite (`integration_test/encrypted_database_android_test.dart`) executed
-  successfully on Android 16 (API 36) emulator: verified runtime SQLCipher 4.19.0 community active, verified
-  encrypted DB creation in `/data/user/0/<package>/app_flutter/`, verified successful reopen with key, verified
-  fail-closed rejection with wrong key, verified rejection without key, and verified unencrypted `/system/bin/sqlite3`
-  fails with `file is not a database (26)`.
-- Corrected Android backup rules (`backup_rules.xml` and `data_extraction_rules.xml`) to explicitly exclude
-  `<exclude domain="root" path="app_flutter" />` because `getApplicationDocumentsDirectory()` resolves to
-  `/data/user/0/<package>/app_flutter/` which is under Android's `root` domain, not `database`.
-- `docs/data-model.md` and `docs/requirements.md` updated to reflect concrete schema and privacy baseline.
-- Copilot instructions split into a slim repository-wide file plus path-scoped
-  `.github/instructions/*.instructions.md` files (domain, data, credit-card) and
-  three reusable `.github/skills/` entries.
-- Android-only Flutter project initialized with Riverpod, go_router, layered
-  source structure, placeholder theme, error handling, logging, environment
-  configuration, and a foundation smoke test.
-- Firebase Core, Firebase Auth, Firebase App Check debug-provider bootstrap, and
-  Google Sign-In integrated behind infrastructure/application abstractions.
-- Authentication loading, signed-out, signed-in, and error states are modeled
-  and connected to routing.
-- Authenticated user scope and a repository access guard are established for
-  future repositories without adding persistence.
+- Initial Schema Version 1 defined and generated for all five entities:
+  - `Categories`: root income/expense taxonomy with `CategoryType` (`INCOME`/`EXPENSE`).
+  - `CreditCards`: non-credential tracking profile with 4-digit numeric validation (`GLOB '[0-9][0-9][0-9][0-9]'`), statement day & due day range (1–31), and non-negative credit limit.
+  - `PaymentMethods`: plain label table with no balance column (ADR-008), with `linkedCreditCardId` foreign key (`ON DELETE SET NULL`).
+  - `Transactions`: mutable transaction record with strictly positive amount minor units (`CHECK (amount_minor_units > 0)`), 3-uppercase-ASCII currency code format (`CHECK (currency GLOB '[A-Z][A-Z][A-Z]')`), foreign keys to Category (`RESTRICT`) and PaymentMethod (`RESTRICT`), and default source `MANUAL`.
+  - `Attachments`: receipt/document metadata with foreign key to Transaction (`ON DELETE CASCADE` for physical row deletion; soft-deletions handled by domain layer) and nullable `AiProcessingStatus`.
+  - `SyncableTable`: uniform persistence mixin across all 5 tables (`createdAt`, `updatedAt`, `deletedAt`, `syncStatus`, `version`).
+- Explicit Drift `TypeConverter` implementations for all domain and sync enums storing exact uppercase strings (`INCOME`, `EXPENSE`, `CASH`, `BANK`, `CREDIT_CARD`, `WALLET`, `OTHER`, `TRANSFER`, `MANUAL`, `AI_RECEIPT`, `AI_NATURAL_LANGUAGE`, `CSV_IMPORT`, `NOT_PROCESSED`, `PENDING`, `DONE`, `FAILED`) and lowercase sync status (`pending`, `synced`, `conflict`), failing closed with `ArgumentError` on unknown values.
+- Schema v1 snapshot exported and checked into Git (`drift_schemas/drift_schema_v1.json`).
+- Comprehensive schema unit test suite implemented (`test/database/schema_v1_test.dart`) covering table structure, uniform metadata, archive indicators, enum serialization/deserialization, default value emission, SQLite-level DDL constraint enforcement (positive amount, currency GLOB, statement/due day, credit limit, 4-digit card number), NOT NULL constraint enforcement, foreign key actions (`SET NULL`, `RESTRICT`, `CASCADE`), SQLCipher encryption at rest, and user database isolation (38/38 unit/widget tests passing).
 
 ## In progress
-- Phase 3 Slice 1 review checkpoint.
+- Phase 3 completion checkpoint.
 
-## Next (Phase 3 Slice 2 — Schema & Entity Tables)
-1. Define Drift tables (`Categories`, `PaymentMethods`, `CreditCards`, `Transactions`, `Attachments`) with the common `SyncableTable` mixin per `docs/data-model.md`.
-2. Implement schema v1 migrations and relations (e.g. `PaymentMethod.linkedCreditCardId` foreign key to `CreditCards.id`).
-3. Run code generation (`build_runner`) for the complete entity schema.
-4. Implement repositories and test suite (schema creation, referential integrity, soft-delete filtering).
-5. Run static analysis and unit tests (`flutter analyze`, `flutter test`).
+## Next (Phase 4 — Transactions)
+1. Define Transaction domain entities, value objects (`Money`, `Currency`), and validation rules.
+2. Implement transaction repository interface and Drift repository implementation.
+3. Centralize transaction mutation use cases (`CreateTransactionUseCase`, `UpdateTransactionUseCase`, `DeleteTransactionUseCase` with attachment soft-delete cascading).
+4. Implement transaction queries (filtering, search, pagination).
+5. Build presentation layer for transaction creation, editing, and list display.
 
 ## Known issues
-- Android debug build completed successfully on 2026-10-27 (`build\app\outputs\flutter-apk\app-debug.apk`) with SQLCipher native libraries bundled; first-time SDK/CMake 3.22.1 installation completed.
+- Local `android/app/google-services.json` is required and ignored by Git; it must
+  be supplied from the existing Firebase project configuration.
+- Firebase Console must have Google provider enabled and the generated App Check
+  debug token registered after the first local run.
 - Android emulator integration tests passed 6/6 tests on Android 16 (API 36) on 2026-10-27.
 - `flutter analyze` passed with no issues on 2026-10-27.
 - `flutter test` passed with 21 unit/widget tests on 2026-10-27.

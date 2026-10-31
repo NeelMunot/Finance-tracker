@@ -4,14 +4,19 @@ import 'package:drift/drift.dart';
 
 import '../../domain/security/database_key_manager.dart';
 import '../../infrastructure/database/encrypted_database_factory.dart';
+import 'tables/tables.dart';
+
+export 'tables/tables.dart';
 
 part 'app_database.g.dart';
 
-/// The root Drift database foundation for the application.
+/// The root Drift database for the application.
 ///
-/// In Phase 3 Slice 1, this provides the encrypted database connection foundation
-/// without entity tables.
-@DriftDatabase(tables: [])
+/// Encrypted via SQLCipher and scoped to the authenticated user (ADR-011, ADR-013).
+/// Foreign keys are explicitly enforced on open.
+@DriftDatabase(
+  tables: [Categories, CreditCards, PaymentMethods, Transactions, Attachments],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
@@ -38,4 +43,11 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   int get schemaVersion => 1;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON;');
+    },
+  );
 }
